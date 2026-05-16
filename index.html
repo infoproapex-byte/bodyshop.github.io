@@ -45,38 +45,38 @@ nav.scrolled{box-shadow:0 2px 24px rgba(0,0,0,.08);}
   position:relative;height:100vh;min-height:600px;
   display:flex;align-items:center;justify-content:center;
   text-align:center;overflow:hidden;
-  background:#f5f3f0;
+  background:#111;
 }
-canvas#paint-canvas{position:absolute;inset:0;width:100%;height:100%;}
+.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
 .hero-overlay{
   position:absolute;inset:0;
-  background:linear-gradient(180deg,rgba(245,243,240,0.08) 0%,rgba(245,243,240,0.45) 65%,rgba(245,243,240,1) 100%);
+  background:linear-gradient(180deg,rgba(10,10,10,0.35) 0%,rgba(10,10,10,0.55) 60%,rgba(10,10,10,0.85) 100%);
 }
 .hero-content{position:relative;z-index:1;max-width:860px;padding:0 24px;}
 .hero-badge{
   display:inline-block;margin-bottom:26px;
-  padding:8px 22px;border:1px solid rgba(184,146,42,.35);border-radius:50px;
+  padding:8px 22px;border:1px solid rgba(184,146,42,.5);border-radius:50px;
   font-size:.74rem;letter-spacing:3px;text-transform:uppercase;color:var(--gold);
-  background:rgba(184,146,42,.06);
+  background:rgba(184,146,42,.1);
   animation:fadeDown .8s ease both;
 }
 .hero h1{
   font-family:'Cormorant Garamond',serif;
   font-size:clamp(4rem,10.5vw,8.5rem);font-weight:300;
   letter-spacing:clamp(10px,2.5vw,26px);
-  line-height:.95;margin-bottom:20px;color:#111;
+  line-height:.95;margin-bottom:20px;color:#fff;
   animation:fadeUp .9s .2s ease both;
 }
 .hero h1 em{font-style:italic;color:var(--gold);}
 .hero-sub{
   font-size:clamp(.92rem,1.8vw,1.12rem);font-weight:400;
   letter-spacing:2.5px;text-transform:uppercase;
-  color:#888;margin-bottom:16px;
+  color:rgba(255,255,255,.65);margin-bottom:16px;
   animation:fadeUp .9s .35s ease both;
 }
 .hero-desc{
   max-width:540px;margin:0 auto 46px;
-  font-size:clamp(1rem,1.5vw,1.08rem);line-height:1.9;color:#555;
+  font-size:clamp(1rem,1.5vw,1.08rem);line-height:1.9;color:rgba(255,255,255,.72);
   font-weight:300;animation:fadeUp .9s .5s ease both;
 }
 .hero-btns{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;animation:fadeUp .9s .65s ease both;}
@@ -88,7 +88,7 @@ canvas#paint-canvas{position:absolute;inset:0;width:100%;height:100%;}
 .scroll-hint{
   position:absolute;bottom:38px;left:50%;transform:translateX(-50%);
   display:flex;flex-direction:column;align-items:center;gap:10px;
-  color:#bbb;font-size:.7rem;letter-spacing:3px;text-transform:uppercase;
+  color:rgba(255,255,255,.45);font-size:.7rem;letter-spacing:3px;text-transform:uppercase;
   animation:fadeUp 1s 1.2s ease both;
 }
 .scroll-line{width:1px;height:52px;background:linear-gradient(to bottom,var(--gold),transparent);animation:scrollPulse 2s ease infinite;}
@@ -240,7 +240,9 @@ footer{padding:46px 60px;border-top:1px solid var(--border);background:var(--off
 </nav>
 
 <section class="hero">
-  <canvas id="paint-canvas"></canvas>
+  <video class="hero-video" autoplay muted loop playsinline>
+    <source src="cars.mp4" type="video/mp4">
+  </video>
   <div class="hero-overlay"></div>
   <div class="hero-content">
     <div class="hero-badge">Established · United Kingdom</div>
@@ -360,109 +362,7 @@ footer{padding:46px 60px;border-top:1px solid var(--border);background:var(--off
 </footer>
 
 <script>
-/* ═══════════ PAINT POUR — light/white version ═══════════
-   Soft metallic automotive paint streams on cream bg.
-   Colours are semi-transparent so white shows through.
-═══════════════════════════════════════════════════════ */
-(function(){
-  const cv = document.getElementById('paint-canvas');
-  const cx = cv.getContext('2d');
-  let W, H;
-  function resize(){
-    W = cv.width  = window.innerWidth;
-    H = cv.height = cv.parentElement.offsetHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize);
 
-  const COLS = [
-    {r:184,g:146,b:42,  a:.13},  // gold
-    {r:210,g:178,b:95,  a:.10},  // pale gold
-    {r:158,g:152,b:168, a:.12},  // silver
-    {r:185,g:180,b:195, a:.09},  // light silver
-    {r:120,g:115,b:140, a:.08},  // lavender
-    {r:75, g:72, b:85,  a:.07},  // slate
-    {r:195,g:185,b:168, a:.08},  // warm beige
-  ];
-
-  const STREAM_N = 20;
-  const streams = [];
-
-  function mkStream(){
-    const c = COLS[Math.floor(Math.random()*COLS.length)];
-    return {
-      x:  Math.random()*W,
-      y: -Math.random()*H*.6,
-      w:  7 + Math.random()*28,
-      spd: .45 + Math.random()*.95,
-      col: c,
-      wob: Math.random()*Math.PI*2,
-      wSpd:.007+Math.random()*.013,
-      wAmp:9+Math.random()*26,
-      len: H*(.32+Math.random()*.72),
-      head:0,
-    };
-  }
-  for(let i=0;i<STREAM_N;i++){
-    const s=mkStream();
-    s.y=Math.random()*H;
-    s.head=s.len*Math.random();
-    streams.push(s);
-  }
-
-  const BLOB_N = 14;
-  const blobs = [];
-  for(let i=0;i<BLOB_N;i++){
-    const c=COLS[Math.floor(Math.random()*COLS.length)];
-    blobs.push({x:Math.random()*W, y:H*(.55+Math.random()*.45),
-      rx:35+Math.random()*120, ry:8+Math.random()*32,
-      col:c, phase:Math.random()*Math.PI*2, spd:.003+Math.random()*.005});
-  }
-
-  function draw(){
-    cx.fillStyle='rgba(245,243,240,0.020)';
-    cx.fillRect(0,0,W,H);
-
-    blobs.forEach(b=>{
-      b.phase+=b.spd;
-      const rx=b.rx+Math.sin(b.phase)*13;
-      const ry=b.ry+Math.cos(b.phase*.75)*4;
-      const g=cx.createRadialGradient(b.x,b.y,0,b.x,b.y,rx);
-      g.addColorStop(0,  `rgba(${b.col.r},${b.col.g},${b.col.b},${b.col.a*1.4})`);
-      g.addColorStop(.55,`rgba(${b.col.r},${b.col.g},${b.col.b},${b.col.a*.45})`);
-      g.addColorStop(1,  `rgba(${b.col.r},${b.col.g},${b.col.b},0)`);
-      cx.save(); cx.scale(1,ry/rx);
-      cx.beginPath(); cx.arc(b.x,b.y*(rx/ry),rx,0,Math.PI*2);
-      cx.fillStyle=g; cx.fill(); cx.restore();
-    });
-
-    streams.forEach(s=>{
-      s.wob+=s.wSpd; s.head+=s.spd; s.y+=s.spd*.22;
-      const x=s.x+Math.sin(s.wob)*s.wAmp;
-      const yT=s.y, yB=Math.min(s.y+s.head,s.y+s.len);
-      const hw=s.w/2;
-      const grd=cx.createLinearGradient(x,yT,x,yB);
-      grd.addColorStop(0,  `rgba(${s.col.r},${s.col.g},${s.col.b},0)`);
-      grd.addColorStop(.1, `rgba(${s.col.r},${s.col.g},${s.col.b},${s.col.a})`);
-      grd.addColorStop(.87,`rgba(${s.col.r},${s.col.g},${s.col.b},${s.col.a})`);
-      grd.addColorStop(1,  `rgba(${s.col.r},${s.col.g},${s.col.b},0)`);
-      cx.beginPath();
-      cx.moveTo(x-hw*.28,yT);
-      cx.bezierCurveTo(x-hw,yT+(yB-yT)*.4,x-hw,yT+(yB-yT)*.6,x,yB);
-      cx.bezierCurveTo(x+hw,yT+(yB-yT)*.6,x+hw,yT+(yB-yT)*.4,x+hw*.28,yT);
-      cx.fillStyle=grd; cx.fill();
-      const br=s.w*.68;
-      const bg=cx.createRadialGradient(x,yB,0,x,yB,br);
-      bg.addColorStop(0,`rgba(${s.col.r},${s.col.g},${s.col.b},${s.col.a*1.5})`);
-      bg.addColorStop(1,`rgba(${s.col.r},${s.col.g},${s.col.b},0)`);
-      cx.beginPath(); cx.arc(x,yB,br,0,Math.PI*2);
-      cx.fillStyle=bg; cx.fill();
-      if(s.y>H+80) Object.assign(s,mkStream());
-    });
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
 
 /* NAV */
 window.addEventListener('scroll',()=>{
