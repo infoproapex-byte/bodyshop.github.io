@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HGV Tracker Pro</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+:root{
+  --bg:#07101c;--s0:#0b1828;--s1:#0e1e30;
+  --text:#cce0ff;--muted:#4e6e90;--border:rgba(80,140,255,.1);
+  --green:#22c55e;--gbg:rgba(34,197,94,.1);--gbrd:rgba(34,197,94,.28);
+  --amber:#f59e0b;--abg:rgba(245,158,11,.1);--abrd:rgba(245,158,11,.28);
+  --red:#ef4444;--rbg:rgba(239,68,68,.1);--rbrd:rgba(239,68,68,.28);
+  --blue:#60a5fa;--bbg:rgba(96,165,250,.1);--bbrd:rgba(96,165,250,.22);
+  --purple:#a78bfa;--pbg:rgba(167,139,250,.1);
+  --r:13px;--mono:'DM Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:40px}
+.wrap{max-width:420px;margin:0 auto;padding:14px 12px}
+
+/* HEADER */
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.hdr-title{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.gps-chip{display:flex;align-items:center;gap:5px;background:var(--s0);border:1px solid var(--border);border-radius:50px;padding:5px 11px;font-size:11px;color:var(--muted);transition:.3s}
+.gps-chip.ok{border-color:var(--gbrd);color:var(--green)}
+.gps-chip.moving{border-color:var(--gbrd);color:var(--green);background:var(--gbg)}
+.gps-chip.searching{border-color:var(--abrd);color:var(--amber)}
+.gps-chip.denied{border-color:var(--rbrd);color:var(--red)}
+.gdot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.gdot.pulse{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.2}}
+
+/* STATUS BAR */
+.sbar{background:var(--s0);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.mdot-wrap{display:flex;align-items:center;gap:10px}
+.mdot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex-shrink:0;position:relative}
+.mdot::after{content:'';position:absolute;inset:-4px;border-radius:50%;background:currentColor;opacity:0}
+.mdot.on::after{opacity:.18;animation:ring 1.5s infinite}
+@keyframes ring{50%{transform:scale(2.2);opacity:0}}
+.mdot.drive{background:var(--green);color:var(--green)}
+.mdot.break{background:var(--amber);color:var(--amber)}
+.mdot.rest{background:var(--blue)}
+.mlabel{font-size:15px;font-weight:600;letter-spacing:.04em}
+.msub{font-size:11px;color:var(--muted);margin-top:2px}
+.clk{font-family:var(--mono);font-size:13px;color:var(--muted)}
+
+/* SPEED ROW */
+.sprow{display:flex;align-items:center;gap:10px;background:var(--s0);border:1px solid var(--border);border-radius:var(--r);padding:9px 14px;margin-bottom:10px;font-size:12px;color:var(--muted)}
+.spval{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--text);min-width:36px}
+.spunit{font-size:11px;margin-left:1px}
+
+/* ALERTS */
+.al{display:none;align-items:flex-start;gap:8px;border-radius:var(--r);padding:10px 12px;margin-bottom:10px;font-size:12px;line-height:1.55}
+.al.show{display:flex}
+.al i{font-size:15px;flex-shrink:0;margin-top:1px}
+.al.warn{background:var(--rbg);border:1px solid var(--rbrd);color:#ffb4b4}
+.al.info{background:var(--abg);border:1px solid var(--abrd);color:#fde68a}
+
+/* BREAK COUNTDOWN */
+.brkbar{display:none;background:var(--abg);border:1px solid var(--abrd);border-radius:var(--r);padding:10px 14px;margin-bottom:10px;justify-content:space-between;align-items:center}
+.brkbar.show{display:flex}
+.brkL{font-size:11px;color:var(--amber)}
+.brkL b{display:block;font-size:13px;margin-bottom:4px}
+.brkprog{height:3px;background:rgba(245,158,11,.15);border-radius:50px;overflow:hidden;width:140px;margin-top:5px}
+.brkpfill{height:100%;background:var(--amber);border-radius:50px;transition:width .5s}
+.brktimer{font-family:var(--mono);font-size:26px;color:var(--amber);font-weight:500}
+
+/* CARDS */
+.card{background:var(--s0);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
+.lbl{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.big{font-family:var(--mono);font-size:28px;font-weight:500;line-height:1;margin-bottom:8px}
+.btrack{height:4px;background:rgba(255,255,255,.06);border-radius:50px;overflow:hidden;margin-bottom:4px}
+.bfill{height:100%;border-radius:50px;transition:width .5s}
+.sub{font-size:11px;color:var(--muted)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.mini{background:var(--s0);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px}
+.mval{font-family:var(--mono);font-size:20px;font-weight:500;margin:4px 0}
+.msub2{font-size:10px;color:var(--muted)}
+.splitrow{display:flex;gap:5px;align-items:center;margin-top:7px}
+.pill{font-size:10px;font-family:var(--mono);padding:2px 8px;border-radius:50px;border:1px solid var(--border);color:var(--muted)}
+.pill.done{background:var(--gbg);border-color:var(--gbrd);color:var(--green)}
+
+/* WEEKLY PANEL */
+.wpanel{background:var(--s0);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+.whdr{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--border);user-select:none}
+.whdrtitle{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.wbody{padding:12px 14px}
+.wrow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--border);font-size:12px}
+.wrow:first-child{border-top:none}
+.wkey{color:var(--muted)}
+.wval{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-weight:500}
+.dots{display:flex;gap:4px}
+.d{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.08);flex-shrink:0}
+.d.used{background:var(--amber)}
+.d.full{background:var(--red)}
+.d.ok{background:var(--green)}
+
+/* DISPATCH CARD */
+.dc{background:var(--s1);border:1px solid var(--bbrd);border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
+.dtitle{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.drow{display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border);font-size:12px}
+.drow:first-of-type{border-top:none}
+.dkey{color:var(--muted)}
+.dval{font-family:var(--mono);font-weight:500}
+.dval.g{color:var(--green)}.dval.a{color:var(--amber)}.dval.r{color:var(--red)}
+
+/* BUTTONS */
+.slbl{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.btn-go{width:100%;padding:13px;border-radius:var(--r);background:var(--gbg);border:1px solid var(--gbrd);color:var(--green);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;margin-bottom:8px;letter-spacing:.03em}
+.btn-go:hover{background:rgba(34,197,94,.18);transform:translateY(-1px)}
+.btn-go:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.brkgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+.btn-brk{padding:10px 6px;border-radius:var(--r);background:var(--abg);border:1px solid var(--abrd);color:var(--amber);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;transition:.2s}
+.btn-brk:hover{background:rgba(245,158,11,.18);transform:translateY(-1px)}
+.bmin{font-family:var(--mono);font-size:18px;font-weight:500;line-height:1}
+.bsub2{font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.btn-end{width:100%;padding:12px;border-radius:var(--r);background:var(--bbg);border:1px solid var(--bbrd);color:var(--blue);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;margin-bottom:8px}
+.btn-end:hover{background:rgba(96,165,250,.16);transform:translateY(-1px)}
+.btn-ext{width:100%;padding:10px;border-radius:var(--r);background:var(--pbg);border:1px solid rgba(167,139,250,.22);color:var(--purple);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:.2s;margin-bottom:8px}
+.btn-ext:hover{background:rgba(167,139,250,.16)}
+.btn-ext:disabled{opacity:.35;cursor:not-allowed}
+.btn-ghost{width:100%;padding:9px;border-radius:var(--r);background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;cursor:pointer;transition:.2s;margin-bottom:6px}
+.btn-ghost:hover{background:var(--s0);color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-title">HGV Tracker Pro</div>
+  <div class="gps-chip searching" id="gpsChip">
+    <div class="gdot pulse" id="gdot"></div>
+    <span id="gpsLbl">GPS...</span>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="sbar">
+  <div class="mdot-wrap">
+    <div class="mdot" id="mdot"></div>
+    <div>
+      <div class="mlabel" id="mlabel">OFF DUTY</div>
+      <div class="msub" id="msub">Apasă Start Shift pentru a începe</div>
+    </div>
+  </div>
+  <div class="clk" id="clk">--:--:--</div>
+</div>
+
+<!-- GPS SPEED -->
+<div class="sprow">
+  <i class="ti ti-satellite" style="font-size:15px;color:var(--muted)" aria-hidden="true"></i>
+  <div><span class="spval" id="spval">--</span><span class="spunit">km/h</span></div>
+  <div style="flex:1"></div>
+  <div style="font-size:10px;color:var(--muted)" id="spacc">fără semnal GPS</div>
+</div>
+
+<!-- BREAK COUNTDOWN -->
+<div class="brkbar" id="brkbar">
+  <div>
+    <div class="brkL"><b id="brktarget">45 min pauză</b><span id="brkrem" style="font-size:10px;color:var(--muted)"> — în curs</span></div>
+    <div class="brkprog"><div class="brkpfill" id="brkpfill" style="width:0%"></div></div>
+  </div>
+  <div class="brktimer" id="brktimer">0:00</div>
+</div>
+
+<!-- ALERTS -->
+<div class="al warn" id="awarn"><i class="ti ti-alert-triangle"></i><div id="awarnT"></div></div>
+<div class="al info" id="ainfo"><i class="ti ti-info-circle"></i><div id="ainfoT"></div></div>
+
+<!-- DRIVING TODAY -->
+<div class="card">
+  <div class="lbl">Condus azi</div>
+  <div class="big" id="daily">0:00:00</div>
+  <div class="btrack"><div class="bfill" id="dailyB" style="width:0%"></div></div>
+  <div class="sub" id="dailyS">Max 9h · 9:00:00 rămas</div>
+</div>
+
+<!-- CONTINUOUS -->
+<div class="card">
+  <div class="lbl">Condus continuu (regula 4h30)</div>
+  <div class="big" id="cont">0:00:00</div>
+  <div class="btrack"><div class="bfill" id="contB" style="width:0%;background:var(--purple)"></div></div>
+  <div class="sub" id="contS">Pauză 45m obligatorie după 4h30</div>
+  <div class="splitrow">
+    <div class="pill" id="p15">15m</div>
+    <div class="pill" id="p30">+30m</div>
+    <div style="flex:1"></div>
+    <div class="pill" id="ptot">0/45m</div>
+  </div>
+</div>
+
+<!-- MINI GRID -->
+<div class="g2">
+  <div class="mini">
+    <div class="lbl">Repaus (off duty)</div>
+    <div class="mval" id="restV">0h 0m</div>
+    <div class="msub2">Min 11h zilnic</div>
+  </div>
+  <div class="mini">
+    <div class="lbl">Pauze azi</div>
+    <div class="mval" id="brkV">0m</div>
+    <div class="msub2">45m per 4h30</div>
+  </div>
+</div>
+
+<!-- WEEKLY PANEL -->
+<div class="wpanel">
+  <div class="whdr" onclick="toggleW()">
+    <div class="whdrtitle"><i class="ti ti-calendar-week" style="font-size:11px"></i> Săptămâna curentă</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;color:var(--muted)" id="wchip">--</span>
+      <i class="ti ti-chevron-down" style="font-size:12px;color:var(--muted);transition:.2s" id="wchev"></i>
+    </div>
+  </div>
+  <div class="wbody" id="wbody">
+
+    <!-- Weekly driving bar -->
+    <div class="wrow" style="flex-direction:column;align-items:flex-start;border-top:none">
+      <div style="display:flex;justify-content:space-between;width:100%;margin-bottom:5px">
+        <span class="wkey">Condus săptămânal</span>
+        <span class="wval" id="wkH">0h / 56h</span>
+      </div>
+      <div class="btrack" style="width:100%;margin-bottom:0"><div class="bfill" id="wkB" style="width:0%;background:var(--blue)"></div></div>
+    </div>
+
+    <!-- Extended 10h days -->
+    <div class="wrow">
+      <span class="wkey">Zile conduse 10h <span style="font-size:10px">(max 2/săpt)</span></span>
+      <span class="wval">
+        <div class="dots"><div class="d" id="e1"></div><div class="d" id="e2"></div></div>
+        <span id="eLbl" style="font-size:12px">0/2</span>
+      </span>
+    </div>
+
+    <!-- Reduced rests 9h -->
+    <div class="wrow">
+      <span class="wkey">Repausuri reduse 9h <span style="font-size:10px">(max 3)</span></span>
+      <span class="wval">
+        <div class="dots"><div class="d" id="r1"></div><div class="d" id="r2"></div><div class="d" id="r3"></div></div>
+        <span id="rLbl" style="font-size:12px">0/3</span>
+      </span>
+    </div>
+
+    <!-- Weekly rest -->
+    <div class="wrow">
+      <span class="wkey">Repaus săptămânal</span>
+      <span class="wval" id="wkRest" style="color:var(--muted);font-family:var(--mono);font-size:11px">Neînregistrat</span>
+    </div>
+
+    <!-- Compensation owed -->
+    <div class="wrow" id="compRow" style="display:none">
+      <span class="wkey">Compensare datorată</span>
+      <span class="wval" id="compVal" style="color:var(--amber);font-size:11px">--</span>
+    </div>
+
+    <div style="display:flex;gap:7px;margin-top:10px">
+      <button class="btn-ghost" style="flex:1;font-size:10px;padding:8px 4px" onclick="logWkRest()">
+        <i class="ti ti-moon" style="font-size:11px"></i> Marchează repaus săpt.
+      </button>
+      <button class="btn-ghost" style="flex:1;font-size:10px;padding:8px 4px" onclick="resetWeek()">
+        <i class="ti ti-refresh" style="font-size:11px"></i> Reset săptămână
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- DISPATCH CARD -->
+<div class="dc">
+  <div class="dtitle"><i class="ti ti-building-warehouse" style="font-size:13px"></i>Arată la dispecerat / birou</div>
+  <div class="drow"><span class="dkey">Ore disponibile azi</span><span class="dval" id="dAvail">--</span></div>
+  <div class="drow"><span class="dkey">Extensie 10h disponibilă</span><span class="dval" id="dExt">--</span></div>
+  <div class="drow"><span class="dkey">Ore săptămânale rămase</span><span class="dval" id="dWkL">--</span></div>
+  <div class="drow"><span class="dkey">Repaus redus 9h disponibil</span><span class="dval" id="dRR">--</span></div>
+  <div class="drow"><span class="dkey">↳ Recomandare cursă</span><span class="dval" id="dRec">--</span></div>
+</div>
+
+<!-- BUTTONS -->
+<div class="slbl">Tură</div>
+<button class="btn-go" id="btnStart" onclick="startShift()">
+  <i class="ti ti-steering-wheel" style="font-size:16px"></i>
+  Start Shift
+</button>
+
+<div class="slbl">Pauze — apasă când ești oprit</div>
+<div class="brkgrid">
+  <button class="btn-brk" onclick="takeBreak(15)">
+    <span class="bmin">15</span><span class="bsub2">min split</span>
+  </button>
+  <button class="btn-brk" onclick="takeBreak(30)">
+    <span class="bmin">30</span><span class="bsub2">min split</span>
+  </button>
+  <button class="btn-brk" onclick="takeBreak(45)">
+    <span class="bmin">45</span><span class="bsub2">min full</span>
+  </button>
+</div>
+
+<button class="btn-end" onclick="endShift()">
+  <i class="ti ti-moon" style="font-size:14px"></i> End Shift (start repaus zilnic)
+</button>
+
+<button class="btn-ext" id="btnExt" onclick="useExt()">
+  <i class="ti ti-clock-plus" style="font-size:14px"></i> Activează extensia 10h azi
+</button>
+
+<button class="btn-ghost" onclick="doReset()">
+  <i class="ti ti-refresh" style="font-size:12px"></i> Reset zi curentă
+</button>
+
+</div><!-- /wrap -->
+<script>
+/* ======= CONSTANTS ======= */
+const H9=9*3600,H10=10*3600,W56=56*3600,CONT=4.5*3600,BRK45=45*60;
+const GPS_THR=1.4; // m/s ≈ 5 km/h
+
+/* ======= STATE ======= */
+function defS(){return{shiftActive:false,mode:'rest',t:Date.now(),daily:0,contDrive:0,breakToday:0,restToday:0,sp15:false,sp30:false,brkValid:false,todayExt:false,brkTarget:45,brkStart:null,lastDate:new Date().toDateString()}}
+function defW(){return{base:0,extDays:0,redRests:0,wkRestH:0,wkRestDate:null,wkRestComp:0,wkStart:new Date().toDateString()}}
+
+let S=load('hS')||defS(), W=load('hW')||defW();
+checkDate();
+
+function load(k){try{let r=localStorage.getItem(k);return r?JSON.parse(r):null}catch(e){return null}}
+function save(){try{localStorage.setItem('hS',JSON.stringify(S));localStorage.setItem('hW',JSON.stringify(W))}catch(e){}}
+
+/* ======= DATE CHANGE ======= */
+function checkDate(){
+  let today=new Date().toDateString();
+  if(S.lastDate!==today){
+    // Previous day done — log to weekly
+    W.base+=S.daily;
+    if(S.daily>H9) W.extDays=Math.min(2,W.extDays+1);
+    let rh=S.restToday/3600;
+    if(rh>=9&&rh<11) W.redRests=Math.min(3,W.redRests+1);
+    let prevMode=S.mode, prevT=S.t;
+    S=defS(); S.lastDate=today; S.mode=prevMode; S.t=prevT;
+    save();
+  }
+}
+
+/* ======= TIME ======= */
+function elap(){return Math.floor((Date.now()-S.t)/1000)}
+
+function accum(){
+  let x=elap(); S.t=Date.now();
+  if(S.mode==='drive'){S.daily+=x;S.contDrive+=x}
+  if(S.mode==='break') S.breakToday+=x;
+  if(S.mode==='rest')  S.restToday+=x;
+}
+
+/* ======= ACTIONS ======= */
+function startShift(){
+  if(S.shiftActive) return;
+  accum(); S.shiftActive=true; S.mode='rest'; S.t=Date.now(); save();
+}
+
+function takeBreak(m){
+  if(!S.shiftActive) return;
+  accum();
+  S.mode='break'; S.brkTarget=m; S.brkStart=Date.now();
+  if(m===15&&!S.sp15){S.sp15=true}
+  else if(m===30&&S.sp15&&!S.sp30){S.sp30=true;S.brkValid=true;S.contDrive=0}
+  else if(m===45){S.sp15=true;S.sp30=true;S.brkValid=true;S.contDrive=0}
+  S.t=Date.now(); save();
+}
+
+function endShift(){
+  if(!S.shiftActive) return;
+  accum();
+  W.base+=S.daily;
+  if(S.todayExt&&S.daily>H9) W.extDays=Math.min(2,W.extDays+1);
+  S.shiftActive=false; S.mode='rest';
+  S.daily=0; S.contDrive=0; S.breakToday=0;
+  S.sp15=false; S.sp30=false; S.brkValid=false; S.todayExt=false;
+  S.t=Date.now(); S.brkStart=null; save();
+}
+
+function useExt(){
+  if(W.extDays>=2||S.todayExt) return;
+  S.todayExt=true; save();
+}
+
+function logWkRest(){
+  let h=prompt('Câte ore de repaus săptămânal ai luat?\n(Minim 24h — repaus redus, 45h — repaus normal)');
+  let hours=parseFloat(h);
+  if(isNaN(hours)||hours<24){alert('Minim 24 de ore pentru repaus săptămânal.');return}
+  W.wkRestH=hours; W.wkRestDate=new Date().toLocaleDateString('ro-RO');
+  W.wkRestComp= hours<45 ? Math.round((45-hours)) : 0;
+  // Full reset after weekly rest
+  W.extDays=0; W.redRests=0; W.base=0;
+  save();
+}
+
+function resetWeek(){
+  if(!confirm('Resetezi datele săptămânii curente?')) return;
+  W=defW(); save();
+}
+
+function doReset(){
+  if(!confirm('Resetezi ziua curentă?')) return;
+  let m=S.mode,t=S.t;
+  S=defS(); S.mode=m; S.t=t; save();
+}
+
+let wOpen=true;
+function toggleW(){
+  wOpen=!wOpen;
+  document.getElementById('wbody').style.display=wOpen?'block':'none';
+  document.getElementById('wchev').style.transform=wOpen?'rotate(180deg)':'rotate(0deg)';
+}
+
+/* ======= GPS ======= */
+let gps={speed:null,acc:null,ok:false,denied:false,driveT:null};
+
+function initGPS(){
+  if(!navigator.geolocation){setGPSChip('denied','No GPS');return}
+  setGPSChip('searching','GPS...');
+  navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:3000,timeout:15000});
+}
+
+function onPos(p){
+  gps.speed=p.coords.speed; gps.acc=Math.round(p.coords.accuracy); gps.ok=true; gps.denied=false;
+  let kmh=gps.speed!==null?gps.speed*3.6:null;
+  let moving=kmh!==null&&kmh>5;
+  setGPSChip(moving?'moving':'ok', moving?Math.round(kmh)+' km/h':'GPS OK');
+  if(moving&&S.shiftActive&&S.mode!=='drive'){
+    if(!gps.driveT) gps.driveT=setTimeout(()=>{
+      if(S.shiftActive&&S.mode!=='drive'){accum();S.mode='drive';S.t=Date.now();save()}
+      gps.driveT=null;
+    },8000);
+  } else if(!moving){
+    if(gps.driveT){clearTimeout(gps.driveT);gps.driveT=null}
+  }
+}
+
+function onErr(e){
+  gps.ok=false;
+  if(e.code===1){gps.denied=true;setGPSChip('denied','GPS refuzat')}
+  else setGPSChip('searching','GPS eroare');
+}
+
+function setGPSChip(cls,txt){
+  let c=document.getElementById('gpsChip'),d=document.getElementById('gdot'),l=document.getElementById('gpsLbl');
+  c.className='gps-chip '+cls;
+  d.className='gdot'+(cls==='searching'?' pulse':'');
+  l.textContent=txt;
+}
+
+/* ======= FORMAT ======= */
+function fmt(s){
+  s=Math.max(0,Math.floor(s));
+  return Math.floor(s/3600)+':'+String(Math.floor(s%3600/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+}
+function fmtHM(s){s=Math.max(0,Math.floor(s));return Math.floor(s/3600)+'h '+Math.floor(s%3600/60)+'m'}
+
+/* ======= RENDER ======= */
+function render(){
+  checkDate();
+  let ex=elap();
+  let d =S.daily     +(S.mode==='drive'?ex:0);
+  let cd=S.contDrive +(S.mode==='drive'?ex:0);
+  let bt=S.breakToday+(S.mode==='break'?ex:0);
+  let rt=S.restToday +(S.mode==='rest' ?ex:0);
+  let wk=W.base+d; // total weekly including today
+  let lim=S.todayExt?H10:H9;
+
+  // -- DAILY --
+  let dP=Math.min(100,d/lim*100);
+  let dC=dP<80?'var(--green)':dP<100?'var(--amber)':'var(--red)';
+  Q('daily').textContent=fmt(d);
+  Q('dailyB').style.cssText='width:'+dP+'%;background:'+dC;
+  Q('dailyS').textContent=(lim-d>0)?'Max '+(S.todayExt?'10':'9')+'h · '+fmt(lim-d)+' rămas':'⛔ LIMITĂ ATINSĂ';
+
+  // -- CONTINUOUS --
+  let cP=Math.min(100,cd/CONT*100);
+  let cC=cP<70?'var(--purple)':cP<95?'var(--amber)':'var(--red)';
+  Q('cont').textContent=fmt(cd);
+  Q('contB').style.cssText='width:'+cP+'%;background:'+cC;
+  Q('contS').textContent=cd<CONT?'Pauză în '+fmt(CONT-cd):'⛔ PAUZĂ OBLIGATORIE ACUM';
+
+  // Split pills
+  let btM=Math.floor(bt/60);
+  Q('p15').className='pill'+(S.sp15?' done':'');
+  Q('p30').className='pill'+(S.sp30?' done':'');
+  Q('ptot').textContent=Math.min(btM,45)+'/45m';
+
+  // -- MINI --
+  Q('restV').textContent=fmtHM(rt);
+  Q('brkV').textContent=btM+'m';
+
+  // -- WEEKLY --
+  let wP=Math.min(100,wk/W56*100);
+  Q('wkH').textContent=Math.floor(wk/3600)+'h / 56h';
+  Q('wkB').style.cssText='width:'+wP+'%;background:'+(wP<80?'var(--blue)':wP<100?'var(--amber)':'var(--red)');
+  Q('wchip').textContent=Math.floor(wk/3600)+'h / 56h';
+
+  // Ext dots
+  for(let i=0;i<2;i++){let cl=i<W.extDays?(W.extDays>=2?'d full':'d used'):'d';Q('e'+(i+1)).className=cl}
+  Q('eLbl').textContent=W.extDays+'/2 '+(W.extDays>=2?'⚠':'');
+
+  // Reduced rest dots
+  for(let i=0;i<3;i++){let cl=i<W.redRests?(W.redRests>=3?'d full':'d used'):'d';Q('r'+(i+1)).className=cl}
+  Q('rLbl').textContent=W.redRests+'/3 '+(W.redRests>=3?'⚠':'');
+
+  // Weekly rest
+  if(W.wkRestDate){
+    Q('wkRest').textContent=W.wkRestH+'h · '+W.wkRestDate+(W.wkRestH>=45?' ✓':' (redus ⚠)');
+    Q('wkRest').style.color=W.wkRestH>=45?'var(--green)':'var(--amber)';
+    if(W.wkRestComp>0){
+      Q('compRow').style.display='flex';
+      Q('compVal').textContent=W.wkRestComp+'h de recuperat la repausul următor';
+    } else {Q('compRow').style.display='none'}
+  } else {
+    Q('wkRest').textContent='Neînregistrat'; Q('wkRest').style.color='var(--muted)';
+    Q('compRow').style.display='none';
+  }
+
+  // -- STATUS BAR --
+  let md=Q('mdot');
+  md.className='mdot'+(S.shiftActive?' on ':' ')+S.mode;
+  Q('mlabel').textContent=!S.shiftActive?'OFF DUTY':S.mode==='drive'?'CONDUCERE':S.mode==='break'?'PAUZĂ':'ÎN SERVICIU';
+  Q('msub').textContent=!S.shiftActive?'Apasă Start Shift pentru a începe':
+    S.mode==='drive'?'Tahograf: DRIVE · GPS detectat automat':
+    S.mode==='break'?'Tahograf: BREAK / REST · GPS activ':
+    'Tahograf: OTHER WORK · GPS monitorizează';
+
+  // GPS speed display
+  let kmh=gps.speed!==null?Math.round(gps.speed*3.6):null;
+  Q('spval').textContent=kmh!==null?kmh:'--';
+  Q('spacc').textContent=gps.acc!==null?'precizie: ±'+gps.acc+'m':'fără fix GPS';
+
+  // -- BREAK COUNTDOWN --
+  let be=Q('brkbar');
+  if(S.mode==='break'&&S.brkStart){
+    be.classList.add('show');
+    let bElap=Math.floor((Date.now()-S.brkStart)/1000);
+    let tgt=S.brkTarget*60;
+    Q('brktimer').textContent=Math.floor(bElap/60)+':'+String(bElap%60).padStart(2,'0');
+    Q('brktarget').textContent=S.brkTarget+' min pauză';
+    let rem=tgt-bElap;
+    Q('brkrem').textContent=rem>0?' — mai rămân '+Math.ceil(rem/60)+'m':' — ✓ completă';
+    Q('brkpfill').style.width=Math.min(100,bElap/tgt*100)+'%';
+  } else be.classList.remove('show');
+
+  // -- ALERTS --
+  let warn='',info='';
+  if(S.shiftActive){
+    if(cd>=CONT&&S.mode==='drive') warn='⛔ Ai depășit 4h30 continuu! Oprește-te și ia pauză imediat.';
+    else if(cd>CONT*0.88&&S.mode==='drive') info='Atenție: mai poți conduce '+fmt(CONT-cd)+' fără pauză.';
+    if(d>=lim) warn+=(warn?' | ':'')+'⛔ Limita zilnică atinsă. Termină tura.';
+    if(wk>=W56) warn+=(warn?' | ':'')+'⛔ Limita săptămânală 56h atinsă.';
+    if(W.extDays>=2&&!S.todayExt) info+=(info?' | ':'')+'Fără extensii 10h rămase săptămâna aceasta.';
+    if(W.redRests>=3) info+=(info?' | ':'')+'3 repausuri reduse epuizate — repaus 11h obligatoriu.';
+  }
+  Q('awarn').className='al warn'+(warn?' show':'');Q('awarnT').textContent=warn;
+  Q('ainfo').className='al info'+(info&&!warn?' show':'');Q('ainfoT').textContent=info;
+
+  // -- BUTTONS --
+  let bs=Q('btnStart');
+  bs.disabled=S.shiftActive;
+  bs.innerHTML=S.shiftActive
+    ?'<i class="ti ti-check" style="font-size:15px"></i> Tură activă — GPS conduce automat'
+    :'<i class="ti ti-steering-wheel" style="font-size:16px"></i> Start Shift';
+
+  let be2=Q('btnExt');
+  be2.disabled=W.extDays>=2||S.todayExt;
+  be2.innerHTML=S.todayExt
+    ?'<i class="ti ti-check" style="font-size:13px"></i> Extensia 10h activă azi'
+    :(W.extDays>=2?'Extensii 10h epuizate (0/2 rămase)':'<i class="ti ti-clock-plus" style="font-size:13px"></i> Activează extensia 10h azi ('+(2-W.extDays)+' rămase)');
+
+  // -- DISPATCH CARD --
+  let dAvail=Math.max(0,lim-d);
+  let wkLeft=Math.max(0,W56-wk);
+  let canExt=W.extDays<2&&!S.todayExt;
+  let rrLeft=3-W.redRests;
+  setDrow('dAvail',fmt(dAvail),dAvail>3*3600?'g':dAvail>3600?'a':'r');
+  setDrow('dExt',canExt?'DA ('+(2-W.extDays)+' rămase)':'NU (epuizate)',canExt?'g':'r');
+  setDrow('dWkL',fmt(wkLeft),wkLeft>15*3600?'g':wkLeft>4*3600?'a':'r');
+  setDrow('dRR',rrLeft>0?'DA ('+rrLeft+' rămase)':'NU — repaus 11h obligatoriu',rrLeft>0?'g':'r');
+  let rec,rc;
+  if(d>=lim||wk>=W56){rec='Nu mai poate conduce azi';rc='r'}
+  else if(dAvail>5*3600&&wkLeft>10*3600){rec='Cursă lungă OK';rc='g'}
+  else if(dAvail>2*3600){rec='Cursă scurtă recomandată';rc='a'}
+  else if(canExt){rec='Poate extensie 10h';rc='a'}
+  else{rec='Repaus necesar';rc='r'}
+  setDrow('dRec',rec,rc);
+
+  // clock
+  Q('clk').textContent=new Date().toLocaleTimeString('ro-RO');
+
+  requestAnimationFrame(render);
+}
+
+function Q(id){return document.getElementById(id)}
+function setDrow(id,t,c){let e=Q(id);e.textContent=t;e.className='dval '+c}
+
+/* ======= BOOT ======= */
+initGPS();
+render();
+</script>
+</body>
+</html>
